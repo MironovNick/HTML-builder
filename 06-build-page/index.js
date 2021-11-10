@@ -41,7 +41,7 @@ async function buildPage() {
             } else
                 throw err;
         }
-к
+
         let files = await readdir(inAssetsDir);
         for (const file of files) {
             const stats = await stat(path.join(inAssetsDir,file));
