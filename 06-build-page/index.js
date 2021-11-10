@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const {readdir, stat, unlink, mkdir, copyFile, readFile} = require('fs/promises');
+const {readdir, stat, unlink, mkdir, copyFile, readFile, rm} = require('fs/promises');
 
 const stylesDir = path.join(__dirname,'styles');
 const componentsDir = path.join(__dirname,'components');
@@ -12,42 +12,21 @@ async function buildPage() {
     try {
         try {
             const stats = await stat(distDir);
-            let files = await readdir(distDir);
-            for (const file of files) {
-                const stats = await stat(path.join(distDir,file));
-                if( stats.isFile() )
-                    await unlink(path.join(distDir,file));
-            }
+            await rm(distDir, { recursive: true });
 
-            files = await readdir(outAssetsDir);
-            for (const file of files) {
-                const stats = await stat(path.join(outAssetsDir,file));
-                if( stats.isFile() )
-                    await unlink(path.join(outAssetsDir,file));
-                else {
-                    const files1 = await readdir(path.join(outAssetsDir,file));
-                    for (const file1 of files1) {
-                        const stats = await stat(path.join(outAssetsDir,file ,file1));
-                        if( stats.isFile() )
-                            await unlink(path.join(outAssetsDir, file,file1));
-                    }
-                }
-            }
         } catch (err) {
-            if(err.code === 'ENOENT') {
-                await mkdir(path.join(outAssetsDir, 'fonts'), { recursive: true });
-                await mkdir(path.join(outAssetsDir, 'img'), { recursive: true });
-                await mkdir(path.join(outAssetsDir, 'svg'), { recursive: true });
-            } else
+            if(err.code != 'ENOENT')
                 throw err;
         }
 
+        await mkdir(outAssetsDir, { recursive: true });
         let files = await readdir(inAssetsDir);
         for (const file of files) {
             const stats = await stat(path.join(inAssetsDir,file));
             if( stats.isFile() )
                 await copyFile(path.join(inAssetsDir,file), path.join(outAssetsDir,file));
             else {
+                await mkdir(path.join(outAssetsDir, file), { recursive: true });
                 const files1 = await readdir(path.join(inAssetsDir,file));
                 for (const file1 of files1) {
                     const stats = await stat(path.join(inAssetsDir,file ,file1));
@@ -63,7 +42,6 @@ async function buildPage() {
             const stats = await stat(path.join(stylesDir,file));
             if( stats.isFile() && path.extname(file).slice(1).toLowerCase() === 'css' ) {
                 let data = await readFile(path.join(stylesDir, file), 'utf-8');
-                
                 styleFile.write(data);
             }
         }
